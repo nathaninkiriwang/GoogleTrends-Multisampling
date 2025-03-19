@@ -1,0 +1,128 @@
+---
+title: "SCDL3991: Google Trends Study Verification (Merge Datasets)"
+author: "Nathan Inkiriwang"
+format: 
+   pdf:
+     df-print: paged
+editor: source
+editor_options: 
+  chunk_output_type: inline
+---
+# Merging Datasets (Python)
+
+```{python}
+import os
+import pandas as pd
+import glob
+import json
+from pandas.io.json import json_normalize
+import os
+import warnings
+path = '/Users/natan/Desktop/usyd/2022/sem 2/scdl3991/data/Meth'
+warnings.simplefilter(action='ignore', category=FutureWarning)
+cwd = os.path.abspath(path) 
+files = os.listdir(cwd)
+
+df = pd.DataFrame()
+df_ls = []
+df_json = pd.DataFrame()
+
+for file in files:
+    df = pd.DataFrame()
+    if file.endswith('.xlsx'):
+        filename = file.split(';')
+        term_topic = filename[0].strip('(').strip(')')
+        region = filename[1]
+        date = filename[-1].split('.')[0]
+        fn = '{}/{}'.format(path,file)
+        df = df.append(pd.read_excel(fn, sheet_name="Google Trends Web data"), ignore_index=True)
+        df["region"] = region
+        df["date_obtained"] = date
+        df["term_topic"] = term_topic
+        df_ls.append(df)
+
+df_final = pd.DataFrame()
+for df in df_ls:
+    df_final = df_final.append(df, ignore_index=True)
+    
+df_final.rename(columns = {'meth':'gt_value'}, inplace = True)
+df_final = df_final[["gt_value", "date", "region", "date_obtained", "term_topic"]]
+
+for file in files:
+    if file.endswith('json'):
+        filename = file.split(';')
+        term_topic = filename[0].strip('(').strip(')')
+        region = filename[1]
+        date = filename[-1].split('.')[0]
+        fn = '{}/{}'.format(path,file)
+        with open(fn, "r") as read_content:
+            data = json.load(read_content)
+        for points in data["lines"][0]["points"]:
+            df_final = df_final.append(pd.DataFrame({'gt_value': [points['value']], 'date' : [points['date']], 'term_topic': [term_topic], 'region': [region], 'date_obtained': [date]}))
+        read_content.close()
+
+
+df_final["date_obtained"] = pd.to_datetime(df_final["date_obtained"])
+df_final["date"] = pd.to_datetime(df_final["date"])
+df_final = df_final.drop_duplicates(keep='first', inplace=False, ignore_index=False)
+df_final = df_final.reset_index()
+df_final.to_csv('df_final3.csv')
+```
+
+# Converting Pandas dataframe to R dataframe
+
+```{r}
+#library(arrow)
+#df <- arrow::read_feather('filename.feather')
+
+df<- read_csv('df_final3.csv')
+df <- df |> select(-c(...1)) 
+
+
+```
+
+# Cleaning
+
+```{r}
+library(tidyverse)
+df <- df %>% 
+  mutate(date = as.Date(date)) %>%
+  mutate(date_obtained =as.Date(date_obtained) ) %>% na.omit(date) %>%
+  select(-index)
+```
+
+# Region Code and Region Names
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(ggplot2)
+region_code = read_csv('region_code.csv',show_col_types = FALSE)
+df_final = merge(df,region_code,all.x=TRUE,by.x='region',by.y='Code')
+df_final <- df_final %>%
+  clean_names()
+```
+
+# Export
+
+```{r}
+write.csv(df_final,"df_final.csv", row.names=FALSE)
+```
+
+### Aggregates
+
+```{r, message=FALSE, warning=FALSE}
+## How many date obtained for each region and term_topic
+df_final_agg <- df_final %>% group_by(region, term_topic) %>% summarise(n_distinct(date_obtained))
+df_final_agg
+df_final_agg = rename(df_final_agg, 'count' = 'n_distinct(date_obtained)')
+
+ ## How many gt_values for each date obtained
+df_final_agg2 = dplyr::count_(df_final, vars = c('region','date_obtained','term_topic'))
+df_final_agg2
+df_final_agg2 = rename(df_final_agg2, count = n)
+
+write.csv(df_final_agg,"df_final_agg.csv", row.names = FALSE)
+write.csv(df_final_agg2,"df_final_agg2.csv", row.names = FALSE)
+
+```

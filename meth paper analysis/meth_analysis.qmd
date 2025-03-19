@@ -1,0 +1,1681 @@
+---
+title: "SCDL3991: Google Trends Study Verification (Meth Analysis)"
+author: "Nathan Inkiriwang"
+format: 
+   pdf:
+      df-print: paged
+      documentclass: article
+      number-sections: false
+      toc-title: Contents
+      toc: true
+      toc-depth: 2
+      lof: true
+      lot: true
+      geometry:
+        - top=30mm
+        - left=30mm
+        - heightrounded
+      fontfamily: mathfont
+      colorlinks: true
+      code-tools: true
+      code-fold: show
+editor: source
+editor_options: 
+  chunk_output_type: inline
+---
+
+
+
+# Replicating PLOS Analysis using Published Data
+
+## Importing Published Data
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+# detach("package:plyr", unload=TRUE)
+setwd('/Users/natan/Desktop/usyd/2022/sem_2/scdl3991/meth paper analysis')
+global_monthly = read_csv("All countries global monthly.csv")
+regional_monthly = read_csv("All countries regional monthly.csv")
+```
+
+## Global Data
+### Switzerland
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+global_monthly_switzerland <- global_monthly |> filter(ccode == 'CH') |> select(-c(firstusers_cmeth_DE, nseizes_cmeth_DE, kg_cmeth_DE, druglabbusts_DE, offences_meth_AT)) |> mutate(all_offences =offences_meth_gesamt_CH  ) |> 	mutate(day= 1) |> filter(year >=2004)
+
+global_monthly_switzerland <- global_monthly_switzerland |> dplyr::group_by(year) |> mutate(meth_avg = mean(meth))
+global_monthly_switzerland$date<-as.Date(with(global_monthly_switzerland,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+switzerland_plot = ggplot(global_monthly_switzerland, aes(x=date, ))+ 
+  geom_line(aes(col = 'All Offences',y = all_offences)) + 
+  labs(y = 'N',x = '') + 
+  geom_line(aes(col = 'Dealing',y = offences_handel_gesamt)) + 
+  geom_line(aes(col = 'Use',y = offences_konsum_gesamt))+ 
+  geom_line(alpha = 0.3,aes(y = meth, col = 'Meth')) + 
+  geom_line(aes(y = meth_avg))+
+  scale_color_manual(name = "", values = c("All Offences" = "darkblue", "Dealing" = "red", "Use" = "green", "Meth" = "black")) + ggtitle("Switzerland")
+```
+
+### Germany
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+global_monthly_germany <- global_monthly |> filter(ccode == 'DE') |> select(c(firstusers_cmeth_DE, nseizes_cmeth_DE,kg_cmeth_DE,druglabbusts_DE,year,month,ccode,meth))  |> 	mutate(day= 1) |> filter(year >=2004)
+
+global_monthly_germany <- global_monthly_germany |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_germany$date<-as.Date(with(global_monthly_germany,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+germany_plot = ggplot(global_monthly_germany, aes(x=date, ))+ 
+  geom_line(aes(col = 'Seizes',y = nseizes_cmeth_DE)) + 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'Amount Seized',y = kg_cmeth_DE*50)) + 
+  geom_line(aes(col = 'First Users',y = firstusers_cmeth_DE))+ 
+  geom_line(aes(col = 'Drug Lab Busts',y=druglabbusts_DE*50))+
+  geom_line(alpha = 0.3,aes(y = meth*10, col = 'Meth')) + # multiplied by 10 to rescale properly but 10 is just a very rough estimate
+  geom_line(aes(y = meth2*10)) +
+  scale_color_manual(name = "", values = c("Seizes" = "darkblue", "First Users" = "red", "Amount Seized" = "green", "Meth" = "black", "Drug Lab Busts" = "orange")) + 
+  scale_y_continuous(name = "N",
+    sec.axis = sec_axis(~.*0.02, name="N Drug Lab Busts/KG Seized"))+ ggtitle("Germany")
+
+```
+
+### Austria
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+global_monthly_austria <- global_monthly |> filter(ccode == 'AT') |> select(c(offences_meth_AT,year,month,ccode,meth))  |> 	mutate(day= 1) |> filter(year >=2004)
+
+global_monthly_austria <- global_monthly_austria |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_austria$date<-as.Date(with(global_monthly_austria,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+austria_plot = ggplot(global_monthly_austria, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(alpha = 0.3,aes(y = meth*4, col = 'Meth')) + # multiplied by 10 to rescale properly but 10 is just a very rough estimate
+  geom_line(aes(y = meth2*4)) + ##Again, the value 4 is a very rough estimate based on what they have
+  scale_color_manual(name = "", values = c("All Offences" = "darkblue", "Meth" = "black")) +
+  ggtitle("Austria")
+```
+
+```{r, warning=FALSE,message=FALSE}
+require(gridExtra)
+cowplot::plot_grid(switzerland_plot,germany_plot,austria_plot)
+```
+
+
+## Regional Data
+
+### Austria
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+regional_monthly_austria <- regional_monthly |> filter(ccode == 'AT') |> 	mutate(day= 1) |> filter(year >=2004) |> filter(region == c('Tirol'))
+regional_monthly_austria1 <- regional_monthly |> filter(ccode == 'AT') |> 	mutate(day= 1) |> filter(year >=2004) |> filter(region == c('Wien'))
+regional_monthly_austria2 <- regional_monthly |> filter(ccode == 'AT') |> 	mutate(day= 1) |> filter(year >=2004) |> filter(region == c('Salzburg'))
+regional_monthly_austria3 <- regional_monthly |> filter(ccode == 'AT') |> 	mutate(day= 1) |> filter(year >=2004) |> filter(region == c('Oberösterreich'))
+regional_monthly_austria4 <- regional_monthly |> filter(ccode == 'AT') |> 	mutate(day= 1) |> filter(year >=2004) |> filter(region == c('Steiermark'))
+regional_monthly_austria5 <- regional_monthly |> filter(ccode == 'AT') |> 	mutate(day= 1) |> filter(year >=2004) |> filter(region == c('Niederösterreich'))
+
+regional_monthly_austria$date<-as.Date(with(regional_monthly_austria,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly_austria1$date<-as.Date(with(regional_monthly_austria1,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly_austria2$date<-as.Date(with(regional_monthly_austria2,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly_austria3$date<-as.Date(with(regional_monthly_austria3,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly_austria4$date<-as.Date(with(regional_monthly_austria4,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly_austria5$date<-as.Date(with(regional_monthly_austria5,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+p = ggplot(regional_monthly_austria, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(aes(y = meth*4, col = 'Meth')) + # multiplied by 10 to rescale properly but 10 is just a very rough estimate
+  facet_wrap(vars(region)) + 
+  theme(legend.position="none") + ylim(0, 800)
+
+p1 = ggplot(regional_monthly_austria1, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(aes(y = meth*4, col = 'Meth')) +
+  facet_wrap(vars(region)) + ylim(0, 800)+ theme(legend.title = element_blank(),legend.position = c(0.5, 0.8), legend.key.size = unit(0.7, 'cm'),legend.background = element_rect(fill  = NA))
+
+p2 =ggplot(regional_monthly_austria2, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(aes(y = meth*4, col = 'Meth')) +
+  facet_wrap(vars(region)) +
+  theme(legend.position="none")+ ylim(0, 800)
+
+p3 = ggplot(regional_monthly_austria3, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(aes(y = meth*4, col = 'Meth')) +
+  facet_wrap(vars(region)) +
+  theme(legend.position="none")+ ylim(0, 800)
+
+p4=ggplot(regional_monthly_austria4, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(aes(y = meth*4, col = 'Meth')) +
+  facet_wrap(vars(region)) +
+  theme(legend.position="none")+ ylim(0, 800)
+
+p5=ggplot(regional_monthly_austria5, aes(x=date, ))+ 
+  labs(y = '',x = '') + 
+  geom_line(aes(col = 'All Offences',y = offences_meth_AT)) + 
+  geom_line(aes(y = meth*4, col = 'Meth')) +
+  facet_wrap(vars(region)) +theme(legend.position="none")+
+  ylim(0, 800)
+
+require(gridExtra)
+grid.arrange(p, p1,p2,p3,p4,p5, ncol=3,nrow=2)
+```
+
+## Cross Correlation Global Imputed Monthly
+
+### Austria
+```{r, message=FALSE,warning=FALSE}
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+global_monthly_austria <-global_monthly_austria |> dplyr::group_by(year) |> drop_na(offences_meth_AT) |> filter(year <=2014)
+n = length(unique(global_monthly_austria$year))
+acf_tibble= data.frame(matrix(NA,   
+                          nrow = 49,
+                          ncol = 0))
+
+
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  global_monthly_austria <- global_monthly_austria %>% add_column(dist*global_monthly_austria$offences_meth_AT, .name_repair = "unique")
+  ccf_austria = ccf(global_monthly_austria$meth,global_monthly_austria[,ncol(global_monthly_austria)],plot=FALSE,na.action = na.pass, lag.max = 24,main='austria',ylim=c(0,1))
+  ccf_austria = ccf_austria$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_austria, .name_repair = "unique")
+}
+
+len  = 100
+acf_tibble$acf_median = rowMedians(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE) 
+acf_tibble$seventyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .75)
+acf_tibble$twentyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .25)
+acf_tibble$lag = c(-24:24)
+p1 = ggplot(acf_tibble, aes(y=acf_median,x = lag ))+ geom_line() +ylim(0, 1) + geom_ribbon(aes(ymin = twentyfifth_percentile, ymax = seventyfifth_percentile), alpha = 0.2) +ggtitle("Austria All Offences")
+```
+
+### Switzerland
+```{r, message=FALSE,warning=FALSE}
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+global_monthly_switzerland <-global_monthly_switzerland |> dplyr::group_by(year) |> drop_na(all_offences) |> filter(year <=2014)
+n = length(unique(global_monthly_switzerland$year))
+
+acf_tibble= data.frame(matrix(NA,   
+                          nrow = 49,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  global_monthly_switzerland <- global_monthly_switzerland %>% add_column(dist*global_monthly_switzerland$all_offences, .name_repair = "unique")
+  ccf_switzerland = ccf(global_monthly_switzerland$meth,global_monthly_switzerland[,ncol(global_monthly_switzerland)],plot=FALSE,na.action = na.pass, lag.max = 24,main='austria',ylim=c(0,1))
+  ccf_switzerland = ccf_switzerland$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_switzerland, .name_repair = "unique")
+}
+
+len  = 100
+acf_tibble$acf_median = rowMedians(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE) 
+acf_tibble$seventyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .75)
+acf_tibble$twentyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .25)
+acf_tibble$lag = c(-24:24)
+p2 = ggplot(acf_tibble, aes(y=acf_median,x = lag ))+ geom_line() +ylim(0, 1) + geom_ribbon(aes(ymin = twentyfifth_percentile, ymax = seventyfifth_percentile), alpha = 0.2)+ggtitle("Switzerland All Offences")
+```
+### Germany First Users
+
+```{r, message=FALSE,warning=FALSE}
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+global_monthly_germany <-global_monthly_germany |> dplyr::group_by(year) |> drop_na(firstusers_cmeth_DE) |> filter(year <=2014)
+n = length(unique(global_monthly_germany$year))
+
+acf_tibble= data.frame(matrix(NA,   
+                          nrow = 49,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  global_monthly_germany <- global_monthly_germany %>% add_column(dist*global_monthly_germany$firstusers_cmeth_DE, .name_repair = "unique")
+  ccf_germany = ccf(global_monthly_germany$meth,global_monthly_germany[,ncol(global_monthly_germany)],plot=FALSE,na.action = na.pass, lag.max = 24,main='austria',ylim=c(0,1))
+  ccf_germany = ccf_germany$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_germany, .name_repair = "unique")
+}
+
+len  = 100
+acf_tibble$acf_median = rowMedians(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE) 
+acf_tibble$seventyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .75)
+acf_tibble$twentyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .25)
+acf_tibble$lag = c(-24:24)
+p3 = ggplot(acf_tibble, aes(y=acf_median,x = lag ))+ geom_line() +ylim(0, 1) + geom_ribbon(aes(ymin = twentyfifth_percentile, ymax = seventyfifth_percentile), alpha = 0.2)+ggtitle("Germany First Users")
+```
+
+### Germany Drug Busts
+```{r, message=FALSE,warning=FALSE}
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+global_monthly_germany <- global_monthly |> filter(ccode == 'DE') |> select(c(firstusers_cmeth_DE, nseizes_cmeth_DE,kg_cmeth_DE,druglabbusts_DE,year,month,ccode,meth))  |> 	mutate(day= 1) |> filter(year >=2004)|> dplyr::group_by(year) |> drop_na(druglabbusts_DE) |> filter(year <=2014)
+
+n = length(unique(global_monthly_germany$year))
+
+acf_tibble= data.frame(matrix(NA,   
+                          nrow = 49,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  global_monthly_germany <- global_monthly_germany %>% add_column(dist*global_monthly_germany$druglabbusts_DE, .name_repair = "unique")
+  ccf_germany = ccf(global_monthly_germany$meth,global_monthly_germany[,ncol(global_monthly_germany)],plot=FALSE,na.action = na.pass, lag.max = 24,main='austria',ylim=c(0,1))
+  ccf_germany = ccf_germany$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_germany, .name_repair = "unique")
+}
+
+len  = 100
+acf_tibble$acf_median = rowMedians(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE) 
+acf_tibble$seventyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .75)
+acf_tibble$twentyfifth_percentile = rowQuantiles(as.matrix(acf_tibble[,c(1:len)]), na.rm =TRUE,probs = .25)
+acf_tibble$lag = c(-24:24)
+p4 = ggplot(acf_tibble, aes(y=acf_median,x = lag ))+ geom_line() +ylim(-0.1, 1) + geom_ribbon(aes(ymin = twentyfifth_percentile, ymax = seventyfifth_percentile), alpha = 0.2) +ggtitle("Germany Drug Busts")
+```
+
+```{r}
+require(gridExtra)
+grid.arrange(p1,p2,p3,p4)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+# Replicating Analysis on our 130 Samples
+## Importing Data
+```{r, message=FALSE,warning=FALSE}
+library(tidyverse)
+df_final = read_csv("/Users/natan/Desktop/usyd/2022/sem_2/scdl3991/data/Meth.csv")
+glimpse(df_final)
+```
+## Cleaning Data
+```{r,message=FALSE,warning=FALSE}
+df_final$Date = as.Date(df_final$Date,"%d%b%Y")
+df_final$ExtractionDate = as.Date(df_final$ExtractionDate,"%d%b%Y")
+df_final <- df_final |> na.omit(Date) |> na.omit(GT_data_point) |> distinct() 
+df_final <- df_final|> select(-c('StartDate','EndDate','fileno')) |> janitor::clean_names() 
+df_final$meth = df_final$gt_data_point
+region_code = read_csv('region_code.csv',show_col_types = FALSE)
+df_final = merge(df_final,region_code,all.x=TRUE,by.x='region',by.y='Code')
+
+df_final <- df_final |> janitor::clean_names() |> arrange(region,term, extraction_date, date) |> dplyr::group_by(region,term,date) |> dplyr::mutate(id = row_number()) |> filter(id <= 130) |> select(-id)
+
+
+```
+
+## Checking Cross Tabulations
+
+```{r, message=FALSE, warning=FALSE}
+## How many date obtained for each region and term_topic
+detach(package:plyr)
+df_final <- df_final |> ungroup()
+df_final_agg <- df_final %>% dplyr::group_by(region, term) %>% dplyr::summarise(n_distinct(extraction_date)) 
+
+ ## How many gt_values for each date obtained
+df_final_agg2 = df_final |> dplyr::group_by(region,term,extraction_date) |> dplyr::summarise(count=dplyr::n())
+
+write.csv(df_final_agg,"df_final_agg.csv", row.names = FALSE)
+write.csv(df_final_agg2,"df_final_agg2.csv", row.names = FALSE)
+```
+
+## Splitting Meth Big Data
+
+```{r}
+# Meth Term Data
+df_final.meth <- df_final |> filter(term == 'meth')
+df_meth_regional <- df_final.meth |> filter(grepl( '-', region, fixed = TRUE))
+df_meth_global <- df_final.meth |> filter(!(grepl( '-', region, fixed = TRUE)))
+
+meth_regional_split = split(df_meth_regional, df_meth_regional$extraction_date)
+meth_global_split = split(df_meth_global, df_meth_global$extraction_date)
+
+
+# _m_0gt5b Term Data
+df_final_._m_0gt5b <- df_final |> filter(term == '_m_0gt5b')
+df_m_0gt5b_regional <-df_final_._m_0gt5b|> filter(grepl( '-', region, fixed = TRUE))
+df_m_0gt5b_global <- df_final_._m_0gt5b |> filter(!(grepl( '-', region, fixed = TRUE)))
+
+m_0gt5b_global_split <- split(df_m_0gt5b_global, df_m_0gt5b_global$extraction_date)
+m_0gt5b_regional_split <- split(df_m_0gt5b_regional, df_m_0gt5b_regional$extraction_date)
+```
+
+
+## Importing PLOS Published Data
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+setwd('/Users/natan/Desktop/usyd/2022/sem_2/scdl3991/meth paper analysis')
+global_monthly = read_csv("All countries global monthly.csv")
+regional_monthly = read_csv("All countries regional monthly.csv")
+
+global_monthly <- dplyr::rename(global_monthly,  meth_paper_data = meth)
+global_monthly$day = 1
+regional_monthly <- dplyr::rename(regional_monthly, meth_paper_data=meth)
+regional_monthly$day = 1
+global_monthly$date <- as.Date(with(global_monthly,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly$date <- as.Date(with(regional_monthly,paste(year,month,day,sep="-")),"%Y-%m-%d")
+```
+
+## Analysis Meth Global
+```{r,message=FALSE,warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(reshape2)
+
+files = unique(df_final$extraction_date)
+results_list = list()
+results_germany = rep(NA, length(meth_global_split))
+results_switzerland = rep(NA, length(meth_global_split))
+results_austria = rep(NA, length(meth_global_split))
+
+i = 1
+
+for (file in meth_global_split){
+  joint_global = left_join(x = global_monthly, y =file,by = c("date" = "date", "ccode" = "region"), keep= TRUE)
+global_monthly_switzerland <- joint_global |> filter(ccode == 'CH') |> select(-c(firstusers_cmeth_DE, nseizes_cmeth_DE, kg_cmeth_DE, druglabbusts_DE, offences_meth_AT)) |> mutate(all_offences =offences_meth_gesamt_CH  ) |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_switzerland <- global_monthly_switzerland |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_switzerland$date<-as.Date(with(global_monthly_switzerland,paste(year,month,day,sep="-")),"%Y-%m-%d")
+global_monthly_germany <- joint_global |> filter(ccode == 'DE') |> select(c(firstusers_cmeth_DE, nseizes_cmeth_DE,kg_cmeth_DE,druglabbusts_DE,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_germany <- global_monthly_germany |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_germany$date<-as.Date(with(global_monthly_germany,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+
+global_monthly_austria <- joint_global |> filter(ccode == 'AT') |> select(c(offences_meth_AT,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_austria <- global_monthly_austria |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_austria$date<-as.Date(with(global_monthly_austria,paste(year,month,day,sep="-")),"%Y-%m-%d")
+list = list(global_monthly_switzerland,global_monthly_germany,global_monthly_austria)
+
+results_austria[i] <- list(global_monthly_austria)
+results_germany[i] <- list(global_monthly_germany)
+results_switzerland[i] <- list(global_monthly_switzerland)
+results_list <- append(results_list, list) 
+i =i+ 1
+}
+
+exdate = results_germany[1][[1]]$extraction_date[1]
+results_germany_base = results_germany[1][[1]]
+#results_germany_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth']
+results_germany_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth2']*10
+results_germany_base <- results_germany_base |> select(-c(meth2,meth,day,extraction_date))
+
+exdate = results_switzerland[1][[1]]$extraction_date[1]
+results_switzerland_base = results_switzerland[1][[1]]
+#results_switzerland_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth']
+results_switzerland_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth2']
+results_switzerland_base <- results_switzerland_base |> select(-c(meth2,meth,gt_data_point,day,extraction_date))
+
+exdate = results_austria[1][[1]]$extraction_date[1]
+results_austria_base = results_austria[1][[1]]
+#results_austria_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth']
+results_austria_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth2']*4
+results_austria_base <- results_austria_base |> select(-c(meth2,meth,day,extraction_date))
+
+
+for (i in 2: length(results_austria)){
+  exdate = results_austria[i][[1]]$extraction_date[1]
+    results_austria[i][[1]] <-   results_austria[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   # results_austria[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth']
+    results_austria[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth2']*4 # Multiplying by 4 to match PLOS graph
+    results_austria[i][[1]] <-   results_austria[i][[1]] |> select(-c(meth,meth2))
+  results_austria_base = left_join(x = results_austria_base, y =results_austria[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_switzerland)){
+  exdate = results_switzerland[i][[1]]$extraction_date[1]
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+ #  results_switzerland[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth']
+    results_switzerland[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth2']
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]] |> select(-c(meth,meth2))
+  results_switzerland_base = left_join(x = results_switzerland_base, y =results_switzerland[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_germany)){
+  exdate = results_germany[i][[1]]$extraction_date[1]
+    results_germany[i][[1]] <-   results_germany[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   # results_germany[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth']
+    results_germany[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth2']*10
+    results_germany[i][[1]] <-   results_germany[i][[1]] |> select(-c(meth,meth2))
+  results_germany_base = left_join(x = results_germany_base, y =results_germany[i][[1]],by = c("date" = "date"))
+}
+
+
+germany_meth_global = results_germany_base
+switzerland_meth_global = results_switzerland_base
+austria_meth_global = results_austria_base
+
+switzerland_meth_global <- switzerland_meth_global |> dplyr::group_by(year) |> mutate(meth_paper_avg = mean(meth_paper_data))
+germany_meth_global <- germany_meth_global |> dplyr::group_by(year) |> mutate(meth_paper_avg = mean(meth_paper_data))
+austria_meth_global <- austria_meth_global |> dplyr::group_by(year) |> mutate(meth_paper_avg = mean(meth_paper_data))
+```
+
+
+### Switzerland Cleaning
+```{r}
+switzerland_meth_global <- switzerland_meth_global|> dplyr::select(-c('ccode','month','hospitalizations_CH','term','project','subdivision_name','subdivision_category','parent_subdivision','offenders_schmuggel_gesamt','offences_schmuggel_gesamt','offenders_anbau_herst_gesamt','offenders_besitz_sst_gesamt','offences_besitz_sst_gesamt','offenders_konsum_gesamt','offenders_handel_gesamt','offenders_einfuhr_SF','offences_einfuhr_SF','offences_einfuhr_SF','offenders_handel_SF','offenders_besitz_sicherst_SF','offences_besitz_sicherst_SF','offences_anbau_herstellung_SF','offences_meth_gesamt_CH','offences_meth_gesamt_CH','hospitalizations_CH','offenders_anbau_herstellung_SF','offences_handel_SF','offences_anbau_herst_gesamt','meth_paper_data','date.x','date.y','region'))
+```
+
+### Switzerland Plot
+```{r}
+len = length(switzerland_meth_global)-1
+switzerland_meth_global$overall_avg_meth = rowMeans(as.matrix(switzerland_meth_global[,c(6:len)]), na.rm =TRUE) 
+switzerland_meth_global <- ungroup(switzerland_meth_global)
+switzerland_meth_global <- switzerland_meth_global |> select(-year)
+switzerland_meth_global <- melt(switzerland_meth_global, id.vars="date")
+switzerland_meth_global_melted = switzerland_meth_global
+
+unique(switzerland_meth_global$variable)
+switzerland_meth_global_colour = switzerland_meth_global|> filter(variable %in% c("offences_handel_gesamt","offences_konsum_gesamt","all_offences")  )
+`%ni%` <- Negate(`%in%`)
+
+
+switzerland_meth_global_colour_dash = switzerland_meth_global|> filter(variable %in% c("meth_paper_avg","overall_avg_meth")  )
+
+switzerland_meth_global_grey = switzerland_meth_global|> filter(variable %ni% c("offences_handel_gesamt","offences_konsum_gesamt","all_offences","meth_paper_avg","overall_avg_meth")  )
+
+# Everything on the same plot
+
+
+
+
+p1 = ggplot(switzerland_meth_global_colour, aes(x=date,y=value, col=variable)) + 
+  geom_line() +
+  scale_color_manual(labels = c("All offences", "Use","Dealing","Meth Paper GT Value","Our 130 Sample Mean"),name = "", values = c("all_offences" = "darkblue","offences_konsum_gesamt" = "green","offences_handel_gesamt" = "red", "meth_paper_avg" = "orange","overall_avg_meth"="black")) +xlab("Date")+ylab("GT Value") +  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+
+p1 = p1 + geom_line(data = switzerland_meth_global_grey,aes(x=date,y=value), size = 0.1)
+
+p1+ geom_line(data = switzerland_meth_global_colour, aes(x=date,y=value, col=variable)) + geom_line(data = switzerland_meth_global_colour_dash, aes(x=date,y=value, col=variable),linetype = 2)
+```
+
+### Austria Plot
+```{r}
+len = length(austria_meth_global)-1
+austria_meth_global$overall_avg_meth = rowMeans(as.matrix(austria_meth_global[,c(8:len)]), na.rm =TRUE) 
+austria_meth_global <- ungroup(austria_meth_global)
+austria_meth_global <- austria_meth_global |> select(-c(year, month,term,ccode,meth_paper_data))
+austria_meth_global$meth_paper_avg = austria_meth_global$meth_paper_avg*4
+
+
+austria_meth_global <- melt(austria_meth_global, id.vars="date")
+
+austria_meth_global_melted = austria_meth_global
+
+`%ni%` <- Negate(`%in%`)
+
+austria_meth_global_col = austria_meth_global |> filter(variable == 'offences_meth_AT')
+austria_meth_global_grey = austria_meth_global|> filter(variable %ni% c("offences_meth_AT","meth_paper_avg","overall_avg_meth"))
+austria_meth_global_dash = austria_meth_global|> filter(variable %in% c("meth_paper_avg","overall_avg_meth"))
+
+p2 = ggplot(austria_meth_global_col, aes(x=date,y=value, col=variable)) + 
+  geom_line() +
+  scale_color_manual(labels = c("All offences","Meth Paper GT Value","Our 130 Sample Mean"),name = "", values = c("offences_meth_AT" = "red", "meth_paper_avg" = "orange","overall_avg_meth"="black")) +xlab("Date")+ylab("GT Value")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+p2 = p2+ geom_line(data = austria_meth_global_grey,aes(x=date,y=value), size = 0.1)
+
+p2 = p2+ geom_line(data = austria_meth_global_dash,aes(x=date,y=value),linetype = 2)
+```
+
+### Germany Plot
+```{r}
+len = length(germany_meth_global)-1
+germany_meth_global$overall_avg_meth = rowMeans(as.matrix(germany_meth_global[,c(11:len)]), na.rm =TRUE) 
+germany_meth_global <- ungroup(germany_meth_global)
+germany_meth_global <- germany_meth_global |> select(-c(year, month,term,ccode,meth_paper_data))
+
+germany_meth_global$kg_cmeth_DE = germany_meth_global$kg_cmeth_DE*50
+germany_meth_global$druglabbusts_DE = germany_meth_global$druglabbusts_DE*50
+germany_meth_global$meth_paper_avg = germany_meth_global$meth_paper_avg *10
+
+germany_meth_global <- melt(germany_meth_global, id.vars="date")
+germany_meth_global_melted = germany_meth_global
+
+
+unique(germany_meth_global$variable)
+
+
+
+
+
+`%ni%` <- Negate(`%in%`)
+
+germany_meth_global_col = germany_meth_global |> filter(variable %in% c("firstusers_cmeth_DE","nseizes_cmeth_DE","kg_cmeth_DE","druglabbusts_DE"))
+germany_meth_global_grey = germany_meth_global|> filter(variable %ni% c("firstusers_cmeth_DE","nseizes_cmeth_DE","kg_cmeth_DE","druglabbusts_DE","meth_paper_avg","overall_avg_meth"))
+germany_meth_global_dash = germany_meth_global|> filter(variable %in% c("meth_paper_avg","overall_avg_meth"))
+
+
+
+p3 = ggplot(germany_meth_global_col, aes(x=date,y=value, col=variable)) + 
+  geom_line() +
+  scale_color_manual(labels = c("Seizes","Amount Siezed","First Users","Drug Lab Busts","Meth Paper GT Value","Our 130 Sample Mean"),name = "", values = c("nseizes_cmeth_DE"="green","kg_cmeth_DE"="blue","firstusers_cmeth_DE" = "red","druglabbusts_DE"="pink", "meth_paper_avg" = "orange","overall_avg_meth"="black")) +xlab("Date")+ylab("GT Value")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+p3 = p3+ geom_line(data = germany_meth_global_grey,aes(x=date,y=value), size = 0.1)
+
+p3 = p3+ geom_line(data = germany_meth_global_dash,aes(x=date,y=value),linetype = 2)
+```
+
+```{r}
+require(gridExtra)
+grid.arrange(p1,p2,p3)
+```
+
+
+
+
+
+## Cross Correlation Global Imputed Monthly
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+setwd('/Users/natan/Desktop/usyd/2022/sem_2/scdl3991/meth paper analysis')
+global_monthly = read_csv("All countries global monthly.csv")
+regional_monthly = read_csv("All countries regional monthly.csv")
+
+global_monthly <- dplyr::rename(global_monthly,  meth_paper_data = meth)
+global_monthly$day = 1
+regional_monthly <- dplyr::rename(regional_monthly, meth_paper_data=meth)
+regional_monthly$day = 1
+global_monthly$date <- as.Date(with(global_monthly,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly$date <- as.Date(with(regional_monthly,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(reshape2)
+
+files = unique(df_final$extraction_date)
+results_list = list()
+results_germany = rep(NA, length(meth_global_split))
+results_switzerland = rep(NA, length(meth_global_split))
+results_austria = rep(NA, length(meth_global_split))
+
+i = 1
+
+
+for (file in meth_global_split){
+  joint_global = left_join(x = global_monthly, y =file,by = c("date" = "date", "ccode" = "region"), keep= TRUE)
+  
+
+global_monthly_switzerland <- joint_global |> filter(ccode == 'CH') |> select(-c(firstusers_cmeth_DE, nseizes_cmeth_DE, kg_cmeth_DE, druglabbusts_DE, offences_meth_AT)) |> mutate(all_offences =offences_meth_gesamt_CH  ) |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_switzerland <- global_monthly_switzerland |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_switzerland$date<-as.Date(with(global_monthly_switzerland,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+
+global_monthly_germany <- joint_global |> filter(ccode == 'DE') |> select(c(firstusers_cmeth_DE, nseizes_cmeth_DE,kg_cmeth_DE,druglabbusts_DE,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_germany <- global_monthly_germany |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_germany$date<-as.Date(with(global_monthly_germany,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+
+global_monthly_austria <- joint_global |> filter(ccode == 'AT') |> select(c(offences_meth_AT,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_austria <- global_monthly_austria |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_austria$date<-as.Date(with(global_monthly_austria,paste(year,month,day,sep="-")),"%Y-%m-%d")
+list = list(global_monthly_switzerland,global_monthly_germany,global_monthly_austria)
+
+results_austria[i] <- list(global_monthly_austria)
+results_germany[i] <- list(global_monthly_germany)
+results_switzerland[i] <- list(global_monthly_switzerland)
+results_list <- append(results_list, list) 
+i =i+ 1
+}
+
+exdate = results_germany[1][[1]]$extraction_date[1]
+results_germany_base = results_germany[1][[1]]
+results_germany_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth']
+#results_germany_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth2']
+results_germany_base <- results_germany_base |> select(-c(meth2,meth,day,extraction_date))
+
+exdate = results_switzerland[1][[1]]$extraction_date[1]
+results_switzerland_base = results_switzerland[1][[1]]
+results_switzerland_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth']
+#results_switzerland_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth2']
+results_switzerland_base <- results_switzerland_base |> select(-c(meth2,meth,gt_data_point,day,extraction_date))
+
+exdate = results_austria[1][[1]]$extraction_date[1]
+results_austria_base = results_austria[1][[1]]
+results_austria_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth']
+#results_austria_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth2']
+results_austria_base <- results_austria_base |> select(-c(meth2,meth,day,extraction_date))
+
+
+for (i in 2: length(results_austria)){
+  exdate = results_austria[i][[1]]$extraction_date[1]
+    results_austria[i][[1]] <-   results_austria[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   results_austria[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth']
+    #results_austria[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth2']*4 # Multiplying by 4 to match PLOS graph
+    results_austria[i][[1]] <-   results_austria[i][[1]] |> select(-c(meth,meth2))
+  results_austria_base = left_join(x = results_austria_base, y =results_austria[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_switzerland)){
+  exdate = results_switzerland[i][[1]]$extraction_date[1]
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   results_switzerland[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth']
+   # results_switzerland[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth2']
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]] |> select(-c(meth,meth2))
+  results_switzerland_base = left_join(x = results_switzerland_base, y =results_switzerland[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_germany)){
+  exdate = results_germany[i][[1]]$extraction_date[1]
+    results_germany[i][[1]] <-   results_germany[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+    results_germany[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth']
+   # results_germany[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth2']*10
+    results_germany[i][[1]] <-   results_germany[i][[1]] |> select(-c(meth,meth2))
+  results_germany_base = left_join(x = results_germany_base, y =results_germany[i][[1]],by = c("date" = "date"))
+}
+
+
+germany_meth_global = results_germany_base
+germany_meth_global_drug = results_germany_base
+switzerland_meth_global = results_switzerland_base
+austria_meth_global = results_austria_base
+```
+
+
+### Austria
+```{r, message=FALSE,warning=FALSE}
+austria_meth_global <-  austria_meth_global|> ungroup() |>select(-c(month,ccode,term,date))
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+austria_meth_global <-austria_meth_global |> dplyr::group_by(year) |> drop_na(offences_meth_AT) |> filter(year <=2014)
+n = length(unique(austria_meth_global$year))
+crime_austria_imputed = data.frame(matrix(NA,   
+                          nrow = 132,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_austria_imputed <- crime_austria_imputed %>% add_column(dist*austria_meth_global$offences_meth_AT, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+austria_meth_global <- austria_meth_global[,3:length(austria_meth_global)]
+ccf_list = rep(NA,length(austria_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(austria_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_austria = ccf(austria_meth_global[,i],crime_austria_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='austria',ylim=c(0,1))
+  ccf_austria = ccf_austria$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_austria, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+  len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+  
+  
+
+  acf_tibble_summary_melted_colour = acf_tibble_summary_melted |> filter(variable %in% c("mean_overall","median_ccf_top"))
+  acf_tibble_summary_melted_grey = acf_tibble_summary_melted |> filter(variable %ni% c("mean_overall","twentyfifth_mean_overall","seventyfifth_mean_overall","median_ccf_top"))
+  
+    acf_tibble_summary_melted_dotted = acf_tibble_summary_melted |> filter(variable %in% c("twentyfifth_mean_overall","seventyfifth_mean_overall"))
+  
+  
+  
+  p1 = ggplot(acf_tibble_summary_melted_colour,aes(x=lag,y=value, col=variable))+ geom_line(size = 1) +ylim(-0.1, 0.65)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "#324E57","mean_overall"="#EE4827","seventyfifth_mean_overall"="#EE4827","twentyfifth_mean_overall"="#EE4827"))+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+  p1 = p1 + geom_line(data =acf_tibble_summary_melted_grey,aes(x=lag,y=value),size = 0.1 ) +  geom_line(data =acf_tibble_summary_melted_dotted,aes(x=lag,y=value),linetype = 2) + geom_line(data = acf_tibble_summary_melted_colour,aes(x=lag,y=value),size = 1) + ggtitle('Total Offences in Austria')+
+  theme(
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank() 
+        ) + ylab(element_blank() ) +xlab('Lag (Months)')
+```
+
+
+
+### Switzerland
+```{r, message=FALSE,warning=FALSE}
+switzerland_meth_global <-  switzerland_meth_global|> ungroup() 
+switzerland_meth_global = switzerland_meth_global[,c(2,4,33,35:length(switzerland_meth_global))]
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+switzerland_meth_global <-switzerland_meth_global |> dplyr::group_by(year) |> drop_na(all_offences) |> filter(year <=2014)
+n = length(unique(switzerland_meth_global$year))
+crime_switzerland_imputed = data.frame(matrix(NA,   
+                          nrow = 132,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_switzerland_imputed <- crime_switzerland_imputed %>% add_column(dist*switzerland_meth_global$all_offences, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+switzerland_meth_global <- switzerland_meth_global[,c(2,4:length(switzerland_meth_global))]
+ccf_list = rep(NA,length(switzerland_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(switzerland_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_switzerland = ccf(switzerland_meth_global[,i],crime_switzerland_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='switzerland',ylim=c(0,1))
+  ccf_switzerland = ccf_switzerland$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_switzerland, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+#   
+#   p2 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 0.65)+
+#   scale_color_manual(name = "", values = c("median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+# panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+    
+
+  acf_tibble_summary_melted_colour = acf_tibble_summary_melted |> filter(variable %in% c("mean_overall","median_ccf_top"))
+  acf_tibble_summary_melted_grey = acf_tibble_summary_melted |> filter(variable %ni% c("mean_overall","twentyfifth_mean_overall","seventyfifth_mean_overall","median_ccf_top"))
+  
+    acf_tibble_summary_melted_dotted = acf_tibble_summary_melted |> filter(variable %in% c("twentyfifth_mean_overall","seventyfifth_mean_overall"))
+  
+  
+  
+  p2 = ggplot(acf_tibble_summary_melted_colour,aes(x=lag,y=value, col=variable))+ geom_line(size = 1) +ylim(-0.1, 0.65)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "#324E57","mean_overall"="#EE4827","seventyfifth_mean_overall"="#EE4827","twentyfifth_mean_overall"="#EE4827"))+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+  p2 = p2 + geom_line(data =acf_tibble_summary_melted_grey,aes(x=lag,y=value),size = 0.1 ) +  geom_line(data =acf_tibble_summary_melted_dotted,aes(x=lag,y=value),linetype = 2) + geom_line(data = acf_tibble_summary_melted_colour,aes(x=lag,y=value),size = 1) + ggtitle('Total Offences in Switzerland')+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()
+        ) +xlab(element_blank()) + ylab('Cross Correlation Value')
+```
+### Germany First Users
+
+```{r, message=FALSE,warning=FALSE}
+germany_meth_global <-  germany_meth_global|> ungroup() 
+germany_meth_global = germany_meth_global[,c(1,5,8,11:length(germany_meth_global))]
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+germany_meth_global <-germany_meth_global |> dplyr::group_by(year) |> drop_na(firstusers_cmeth_DE) |> filter(year <=2014)
+n = length(unique(germany_meth_global$year))
+crime_germany_imputed = data.frame(matrix(NA,   
+                          nrow = nrow(germany_meth_global),
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_germany_imputed <- crime_germany_imputed %>% add_column(dist*germany_meth_global$firstusers_cmeth_DE, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+germany_meth_global <- germany_meth_global[,c(3:length(germany_meth_global))]
+ccf_list = rep(NA,length(germany_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(germany_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_germany = ccf(germany_meth_global[,i],crime_germany_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='germany',ylim=c(0,1))
+  ccf_germany = ccf_germany$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_germany, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+  
+#   p3 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 0.65)+
+#   scale_color_manual(name = "", values = c("median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+# panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+    
+
+  acf_tibble_summary_melted_colour = acf_tibble_summary_melted |> filter(variable %in% c("mean_overall","median_ccf_top"))
+  acf_tibble_summary_melted_grey = acf_tibble_summary_melted |> filter(variable %ni% c("mean_overall","twentyfifth_mean_overall","seventyfifth_mean_overall","median_ccf_top"))
+  
+    acf_tibble_summary_melted_dotted = acf_tibble_summary_melted |> filter(variable %in% c("twentyfifth_mean_overall","seventyfifth_mean_overall"))
+  
+  
+  
+  p3 = ggplot(acf_tibble_summary_melted_colour,aes(x=lag,y=value, col=variable))+ geom_line(size = 1) +ylim(-0.1, 0.65)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "#324E57","mean_overall"="#EE4827","seventyfifth_mean_overall"="#EE4827","twentyfifth_mean_overall"="#EE4827"))+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+  p3 = p3 + geom_line(data =acf_tibble_summary_melted_grey,aes(x=lag,y=value),size = 0.1 ) +  geom_line(data =acf_tibble_summary_melted_dotted,aes(x=lag,y=value),linetype = 2) + geom_line(data = acf_tibble_summary_melted_colour,aes(x=lag,y=value),size = 1) + ggtitle('Germany First Users')+
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.text.y=element_blank(),
+        axis.ticks.y=element_blank() 
+        ) +xlab(element_blank()) +ylab(element_blank())
+```
+
+### Germany Drug Busts
+```{r, message=FALSE,warning=FALSE}
+germany_meth_global = germany_meth_global_drug
+germany_meth_global <-  germany_meth_global|> ungroup() 
+germany_meth_global = germany_meth_global[,c(4,5,8,11:length(germany_meth_global))]
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+germany_meth_global <-germany_meth_global |> dplyr::group_by(year) |> drop_na(druglabbusts_DE) |> filter(year <=2014)
+n = length(unique(germany_meth_global$year))
+crime_germany_imputed = data.frame(matrix(NA,   
+                          nrow = nrow(germany_meth_global),
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_germany_imputed <- crime_germany_imputed %>% add_column(dist*germany_meth_global$druglabbusts_DE, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+germany_meth_global <- germany_meth_global[,c(3:length(germany_meth_global))]
+ccf_list = rep(NA,length(germany_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(germany_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_germany = ccf(germany_meth_global[,i],crime_germany_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='germany',ylim=c(0,1))
+  ccf_germany = ccf_germany$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_germany, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  colnames = colnames(acf_tibble_summary[,2:129])
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+#   
+#   p4 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 1)+
+#     scale_color_manual(values=c("#CC6666"))+
+#   scale_color_manual(name = "", values = c(colnames = "white","median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+# panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+    acf_tibble_summary_melted_colour = acf_tibble_summary_melted |> filter(variable %in% c("mean_overall","median_ccf_top"))
+  acf_tibble_summary_melted_grey = acf_tibble_summary_melted |> filter(variable %ni% c("mean_overall","twentyfifth_mean_overall","seventyfifth_mean_overall","median_ccf_top"))
+  
+    acf_tibble_summary_melted_dotted = acf_tibble_summary_melted |> filter(variable %in% c("twentyfifth_mean_overall","seventyfifth_mean_overall"))
+  
+  
+  
+  p4 = ggplot(acf_tibble_summary_melted_colour,aes(x=lag,y=value, col=variable))+ geom_line(size = 1) +ylim(-0.1, 0.65)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "#324E57","mean_overall"="#EE4827","seventyfifth_mean_overall"="#EE4827","twentyfifth_mean_overall"="#EE4827"))+theme(legend.position="none")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+  
+  
+  p4 = p4 + geom_line(data =acf_tibble_summary_melted_grey,aes(x=lag,y=value),size = 0.1 ) +  geom_line(data =acf_tibble_summary_melted_dotted,aes(x=lag,y=value),linetype = 2) + geom_line(data = acf_tibble_summary_melted_colour,aes(x=lag,y=value),size = 1) + ggtitle('Germany Drug Busts') +xlab('Lag (Months)') +ylab('Cross Correlation Value')
+```
+
+```{r}
+require(gridExtra)
+grid.arrange(p2,p3,p4,p1)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Replicating Analysis using search term
+
+
+
+## Analysis Meth Global
+```{r,message=FALSE,warning=FALSE}
+if(any(grepl("package:plyr", search()))) detach("package:plyr") else message("plyr not loaded")
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(reshape2)
+
+files = unique(df_final$extraction_date)
+results_list = list()
+results_germany = rep(NA, length(m_0gt5b_global_split))
+results_switzerland = rep(NA, length(m_0gt5b_global_split))
+results_austria = rep(NA, length(m_0gt5b_global_split))
+
+
+
+i = 1
+
+for (file in m_0gt5b_global_split){
+  joint_global = left_join(x = global_monthly, y =file,by = c("date" = "date", "ccode" = "region"), keep= TRUE)
+global_monthly_switzerland <- joint_global |> filter(ccode == 'CH') |> select(-c(firstusers_cmeth_DE, nseizes_cmeth_DE, kg_cmeth_DE, druglabbusts_DE, offences_meth_AT)) |> mutate(all_offences =offences_meth_gesamt_CH  ) |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_switzerland <- global_monthly_switzerland |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_switzerland$date<-as.Date(with(global_monthly_switzerland,paste(year,month,day,sep="-")),"%Y-%m-%d")
+global_monthly_germany <- joint_global |> filter(ccode == 'DE') |> select(c(firstusers_cmeth_DE, nseizes_cmeth_DE,kg_cmeth_DE,druglabbusts_DE,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_germany <- global_monthly_germany |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_germany$date<-as.Date(with(global_monthly_germany,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+
+global_monthly_austria <- joint_global |> filter(ccode == 'AT') |> select(c(offences_meth_AT,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_austria <- global_monthly_austria |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_austria$date<-as.Date(with(global_monthly_austria,paste(year,month,day,sep="-")),"%Y-%m-%d")
+list = list(global_monthly_switzerland,global_monthly_germany,global_monthly_austria)
+
+results_austria[i] <- list(global_monthly_austria)
+results_germany[i] <- list(global_monthly_germany)
+results_switzerland[i] <- list(global_monthly_switzerland)
+results_list <- append(results_list, list) 
+i =i+ 1
+}
+
+exdate = results_germany[1][[1]]$extraction_date[1]
+results_germany_base = results_germany[1][[1]]
+#results_germany_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth']
+results_germany_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth2']*10
+results_germany_base <- results_germany_base |> select(-c(meth2,meth,day,extraction_date))
+
+exdate = results_switzerland[1][[1]]$extraction_date[1]
+results_switzerland_base = results_switzerland[1][[1]]
+#results_switzerland_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth']
+results_switzerland_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth2']
+results_switzerland_base <- results_switzerland_base |> select(-c(meth2,meth,gt_data_point,day,extraction_date))
+
+exdate = results_austria[1][[1]]$extraction_date[1]
+results_austria_base = results_austria[1][[1]]
+#results_austria_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth']
+results_austria_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth2']*4
+results_austria_base <- results_austria_base |> select(-c(meth2,meth,day,extraction_date))
+
+
+for (i in 2: length(results_austria)){
+  exdate = results_austria[i][[1]]$extraction_date[1]
+    results_austria[i][[1]] <-   results_austria[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   # results_austria[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth']
+    results_austria[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth2']*4 # Multiplying by 4 to match PLOS graph
+    results_austria[i][[1]] <-   results_austria[i][[1]] |> select(-c(meth,meth2))
+  results_austria_base = left_join(x = results_austria_base, y =results_austria[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_switzerland)){
+  exdate = results_switzerland[i][[1]]$extraction_date[1]
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+ #  results_switzerland[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth']
+    results_switzerland[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth2']
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]] |> select(-c(meth,meth2))
+  results_switzerland_base = left_join(x = results_switzerland_base, y =results_switzerland[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_germany)){
+  exdate = results_germany[i][[1]]$extraction_date[1]
+    results_germany[i][[1]] <-   results_germany[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   # results_germany[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth']
+    results_germany[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth2']*10
+    results_germany[i][[1]] <-   results_germany[i][[1]] |> select(-c(meth,meth2))
+  results_germany_base = left_join(x = results_germany_base, y =results_germany[i][[1]],by = c("date" = "date"))
+}
+
+
+germany_meth_global = results_germany_base
+switzerland_meth_global = results_switzerland_base
+austria_meth_global = results_austria_base
+
+switzerland_m0_global <- switzerland_meth_global |> dplyr::group_by(year) |> mutate(meth_paper_avg = mean(meth_paper_data))
+germany_m0_global <- germany_meth_global |> dplyr::group_by(year) |> mutate(meth_paper_avg = mean(meth_paper_data))
+austria_m0_global <- austria_meth_global |> dplyr::group_by(year) |> mutate(meth_paper_avg = mean(meth_paper_data))
+```
+
+
+### Switzerland Cleaning
+```{r}
+switzerland_m0_global <- switzerland_m0_global|> dplyr::select(-c('ccode','month','hospitalizations_CH','term','project','subdivision_name','subdivision_category','parent_subdivision','offenders_schmuggel_gesamt','offences_schmuggel_gesamt','offenders_anbau_herst_gesamt','offenders_besitz_sst_gesamt','offences_besitz_sst_gesamt','offenders_konsum_gesamt','offenders_handel_gesamt','offenders_einfuhr_SF','offences_einfuhr_SF','offences_einfuhr_SF','offenders_handel_SF','offenders_besitz_sicherst_SF','offences_besitz_sicherst_SF','offences_anbau_herstellung_SF','offences_meth_gesamt_CH','offences_meth_gesamt_CH','hospitalizations_CH','offenders_anbau_herstellung_SF','offences_handel_SF','offences_anbau_herst_gesamt','meth_paper_data','date.x','date.y','region'))
+```
+
+### Switzerland Plot
+```{r}
+len = length(switzerland_m0_global)-1
+switzerland_m0_global$overall_avg_meth = rowMeans(as.matrix(switzerland_m0_global[,c(6:len)]), na.rm =TRUE) 
+switzerland_m0_global <- ungroup(switzerland_m0_global)
+switzerland_m0_global <- switzerland_m0_global |> select(offences_handel_gesamt,offences_konsum_gesamt,all_offences,date,meth_paper_avg,overall_avg_meth)
+switzerland_m0_global <- melt(switzerland_m0_global, id.vars="date")
+
+
+ switzerland_meth_global_melted <- switzerland_meth_global_melted |> filter(variable == "overall_avg_meth")
+
+
+# Everything on the same plot
+p1 = ggplot(switzerland_m0_global, aes(x=date,y=value, col=variable)) + 
+  geom_line() +
+  scale_color_manual(name = "", values = c("offences_handel_gesamt" = "red","all_offences" = "darkblue", "offences_konsum_gesamt" = "green", "meth_paper_avg" = "orange","overall_avg_meth"="black"))
+
+p1 + geom_line(data = switzerland_meth_global_melted, aes(x=date,y=value), col = "black",linetype="dashed")
+```
+
+### Austria Plot
+```{r}
+len = length(austria_m0_global)-1
+austria_m0_global$overall_avg_meth = rowMeans(as.matrix(austria_m0_global[,c(8:len)]), na.rm =TRUE) 
+austria_m0_global <- ungroup(austria_m0_global)
+austria_m0_global <- austria_m0_global |> select(-c(year, month,term,ccode,meth_paper_data))
+austria_m0_global$meth_paper_avg = austria_m0_global$meth_paper_avg*4
+
+
+austria_m0_global <- melt(austria_m0_global, id.vars="date")
+austria_m0_global <- austria_m0_global|> filter(variable %in% c("offences_meth_AT", "meth_paper_avg","overall_avg_meth"))
+
+
+ austria_meth_global_melted <- austria_meth_global_melted |> filter(variable == "overall_avg_meth")
+
+p2 = ggplot(austria_m0_global, aes(x=date,y=value, col=variable)) + 
+  geom_line() +
+  scale_color_manual(name = "", values = c("offences_meth_AT" = "red", "meth_paper_avg" = "orange","overall_avg_meth"="black"))
+
+
+p2 + geom_line(data = austria_meth_global_melted, aes(x=date,y=value), col = "black",linetype="dashed")
+```
+
+### Germany Plot
+```{r}
+len = length(germany_m0_global)-1
+germany_m0_global$overall_avg_meth = rowMeans(as.matrix(germany_m0_global[,c(11:len)]), na.rm =TRUE) 
+germany_m0_global <- ungroup(germany_m0_global)
+germany_m0_global <- germany_m0_global |> select(-c(year, month,term,ccode,meth_paper_data))
+
+germany_m0_global$kg_cmeth_DE = germany_m0_global$kg_cmeth_DE*50
+germany_m0_global$druglabbusts_DE = germany_m0_global$druglabbusts_DE*50
+germany_m0_global$meth_paper_avg = germany_m0_global$meth_paper_avg *10
+
+germany_m0_global <- melt(germany_m0_global, id.vars="date")
+germany_m0_global <- germany_m0_global |>filter(variable %in% c("firstusers_cmeth_DE","nseizes_cmeth_DE","kg_cmeth_DE","druglabbusts_DE", "meth_paper_avg","overall_avg_meth"))
+
+
+germany_meth_global_melted <-  germany_meth_global_melted |> filter(variable =='overall_avg_meth' )
+p3 = ggplot(germany_m0_global, aes(x=date,y=value, col=variable)) + 
+  geom_line() +
+  scale_color_manual(name = "", values = c("firstusers_cmeth_DE" = "red","nseizes_cmeth_DE"="green","kg_cmeth_DE"="blue","druglabbusts_DE"="pink", "meth_paper_avg" = "orange","overall_avg_meth"="black"))
+
+
+
+p3 + geom_line(data = germany_meth_global_melted, aes(x=date,y=value), col = "black",linetype="dashed")
+```
+
+```{r}
+require(gridExtra)
+grid.arrange(p1,p2,p3)
+```
+
+
+
+
+
+## Cross Correlation Global Imputed Monthly
+```{r,warning=FALSE, message=FALSE}
+library(tidyverse)
+setwd('/Users/natan/Desktop/usyd/2022/sem 2/scdl3991/meth paper analysis')
+global_monthly = read_csv("All countries global monthly.csv")
+regional_monthly = read_csv("All countries regional monthly.csv")
+
+global_monthly <- dplyr::rename(global_monthly,  meth_paper_data = meth)
+global_monthly$day = 1
+regional_monthly <- dplyr::rename(regional_monthly, meth_paper_data=meth)
+regional_monthly$day = 1
+global_monthly$date <- as.Date(with(global_monthly,paste(year,month,day,sep="-")),"%Y-%m-%d")
+regional_monthly$date <- as.Date(with(regional_monthly,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(reshape2)
+
+files = unique(df_final$extraction_date)
+results_list = list()
+results_germany = rep(NA, length(m_0gt5b_global_split))
+results_switzerland = rep(NA, length(m_0gt5b_global_split))
+results_austria = rep(NA, length(m_0gt5b_global_split))
+
+i = 1
+
+
+for (file in m_0gt5b_global_split){
+  joint_global = left_join(x = global_monthly, y =file,by = c("date" = "date", "ccode" = "region"), keep= TRUE)
+  
+
+global_monthly_switzerland <- joint_global |> filter(ccode == 'CH') |> select(-c(firstusers_cmeth_DE, nseizes_cmeth_DE, kg_cmeth_DE, druglabbusts_DE, offences_meth_AT)) |> mutate(all_offences =offences_meth_gesamt_CH  ) |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_switzerland <- global_monthly_switzerland |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_switzerland$date<-as.Date(with(global_monthly_switzerland,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+
+global_monthly_germany <- joint_global |> filter(ccode == 'DE') |> select(c(firstusers_cmeth_DE, nseizes_cmeth_DE,kg_cmeth_DE,druglabbusts_DE,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_germany <- global_monthly_germany |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_germany$date<-as.Date(with(global_monthly_germany,paste(year,month,day,sep="-")),"%Y-%m-%d")
+
+
+global_monthly_austria <- joint_global |> filter(ccode == 'AT') |> select(c(offences_meth_AT,year,month,ccode,meth,meth_paper_data,term,extraction_date))  |> 	mutate(day= 1) |> filter(year >=2004)
+global_monthly_austria <- global_monthly_austria |> dplyr::group_by(year) |> mutate(meth2 = mean(meth))
+global_monthly_austria$date<-as.Date(with(global_monthly_austria,paste(year,month,day,sep="-")),"%Y-%m-%d")
+list = list(global_monthly_switzerland,global_monthly_germany,global_monthly_austria)
+
+results_austria[i] <- list(global_monthly_austria)
+results_germany[i] <- list(global_monthly_germany)
+results_switzerland[i] <- list(global_monthly_switzerland)
+results_list <- append(results_list, list) 
+i =i+ 1
+}
+
+exdate = results_germany[1][[1]]$extraction_date[1]
+results_germany_base = results_germany[1][[1]]
+results_germany_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth']
+#results_germany_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany_base[,'meth2']
+results_germany_base <- results_germany_base |> select(-c(meth2,meth,day,extraction_date))
+
+exdate = results_switzerland[1][[1]]$extraction_date[1]
+results_switzerland_base = results_switzerland[1][[1]]
+results_switzerland_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth']
+#results_switzerland_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland_base[,'meth2']
+results_switzerland_base <- results_switzerland_base |> select(-c(meth2,meth,gt_data_point,day,extraction_date))
+
+exdate = results_austria[1][[1]]$extraction_date[1]
+results_austria_base = results_austria[1][[1]]
+results_austria_base[,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth']
+#results_austria_base[,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria_base[,'meth2']
+results_austria_base <- results_austria_base |> select(-c(meth2,meth,day,extraction_date))
+
+
+for (i in 2: length(results_austria)){
+  exdate = results_austria[i][[1]]$extraction_date[1]
+    results_austria[i][[1]] <-   results_austria[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   results_austria[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth']
+    #results_austria[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_austria[i][[1]][,'meth2']*4 # Multiplying by 4 to match PLOS graph
+    results_austria[i][[1]] <-   results_austria[i][[1]] |> select(-c(meth,meth2))
+  results_austria_base = left_join(x = results_austria_base, y =results_austria[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_switzerland)){
+  exdate = results_switzerland[i][[1]]$extraction_date[1]
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+   results_switzerland[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth']
+   # results_switzerland[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_switzerland[i][[1]][,'meth2']
+    results_switzerland[i][[1]] <-   results_switzerland[i][[1]] |> select(-c(meth,meth2))
+  results_switzerland_base = left_join(x = results_switzerland_base, y =results_switzerland[i][[1]],by = c("date" = "date"))
+}
+
+for (i in 2: length(results_germany)){
+  exdate = results_germany[i][[1]]$extraction_date[1]
+    results_germany[i][[1]] <-   results_germany[i][[1]]|> ungroup() |> select(c(date,meth,meth2))
+    results_germany[i][[1]][,  paste("meth",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth']
+   # results_germany[i][[1]][,  paste("meth_avg",exdate, sep = "_", collapse = NULL)] = results_germany[i][[1]][,'meth2']*10
+    results_germany[i][[1]] <-   results_germany[i][[1]] |> select(-c(meth,meth2))
+  results_germany_base = left_join(x = results_germany_base, y =results_germany[i][[1]],by = c("date" = "date"))
+}
+
+
+germany_meth_global = results_germany_base
+germany_meth_global_drug = results_germany_base
+switzerland_meth_global = results_switzerland_base
+austria_meth_global = results_austria_base
+```
+
+
+### Austria
+```{r, message=FALSE,warning=FALSE}
+austria_meth_global <-  austria_meth_global|> ungroup() |>select(-c(month,ccode,term,date))
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+austria_meth_global <-austria_meth_global |> dplyr::group_by(year) |> drop_na(offences_meth_AT) |> filter(year <=2014)
+n = length(unique(austria_meth_global$year))
+crime_austria_imputed = data.frame(matrix(NA,   
+                          nrow = 132,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_austria_imputed <- crime_austria_imputed %>% add_column(dist*austria_meth_global$offences_meth_AT, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+austria_meth_global <- austria_meth_global[,3:length(austria_meth_global)]
+ccf_list = rep(NA,length(austria_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(austria_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_austria = ccf(austria_meth_global[,i],crime_austria_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='austria',ylim=c(0,1))
+  ccf_austria = ccf_austria$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_austria, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+  len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+  
+  
+  p1 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 1)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")
+```
+
+
+
+### Switzerland
+```{r, message=FALSE,warning=FALSE}
+switzerland_meth_global <-  switzerland_meth_global|> ungroup() 
+switzerland_meth_global = switzerland_meth_global[,c(2,4,33,35:length(switzerland_meth_global))]
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+switzerland_meth_global <-switzerland_meth_global |> dplyr::group_by(year) |> drop_na(all_offences) |> filter(year <=2014)
+n = length(unique(switzerland_meth_global$year))
+crime_switzerland_imputed = data.frame(matrix(NA,   
+                          nrow = 132,
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_switzerland_imputed <- crime_switzerland_imputed %>% add_column(dist*switzerland_meth_global$all_offences, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+switzerland_meth_global <- switzerland_meth_global[,c(2,4:length(switzerland_meth_global))]
+ccf_list = rep(NA,length(switzerland_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(switzerland_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_switzerland = ccf(switzerland_meth_global[,i],crime_switzerland_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='switzerland',ylim=c(0,1))
+  ccf_switzerland = ccf_switzerland$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_switzerland, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+  
+  p2 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 1)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")
+```
+### Germany First Users
+
+```{r, message=FALSE,warning=FALSE}
+germany_meth_global <-  germany_meth_global|> ungroup() 
+germany_meth_global = germany_meth_global[,c(1,5,8,11:length(germany_meth_global))]
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+germany_meth_global <-germany_meth_global |> dplyr::group_by(year) |> drop_na(firstusers_cmeth_DE) |> filter(year <=2014)
+n = length(unique(germany_meth_global$year))
+crime_germany_imputed = data.frame(matrix(NA,   
+                          nrow = nrow(germany_meth_global),
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_germany_imputed <- crime_germany_imputed %>% add_column(dist*germany_meth_global$firstusers_cmeth_DE, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+germany_meth_global <- germany_meth_global[,c(3:length(germany_meth_global))]
+ccf_list = rep(NA,length(germany_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(germany_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_germany = ccf(germany_meth_global[,i],crime_germany_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='germany',ylim=c(0,1))
+  ccf_germany = ccf_germany$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_germany, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+  
+  p3 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 1)+
+  scale_color_manual(name = "", values = c("median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")
+```
+
+### Germany Drug Busts
+```{r, message=FALSE,warning=FALSE}
+germany_meth_global = germany_meth_global_drug
+germany_meth_global <-  germany_meth_global|> ungroup() 
+germany_meth_global = germany_meth_global[,c(4,5,8,11:length(germany_meth_global))]
+library(tidyr)
+library(LaplacesDemon)
+library(plyr)
+library(matrixStats)
+library(ggplot2)
+dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+germany_meth_global <-germany_meth_global |> dplyr::group_by(year) |> drop_na(druglabbusts_DE) |> filter(year <=2014)
+n = length(unique(germany_meth_global$year))
+crime_germany_imputed = data.frame(matrix(NA,   
+                          nrow = nrow(germany_meth_global),
+                          ncol = 0))
+for (i in 1:100){
+  dist = rdirichlet(1, c(1,1,1,1,1,1,1,1,1,1,1,1))
+  dist = rep(dist,n)
+  crime_germany_imputed <- crime_germany_imputed %>% add_column(dist*germany_meth_global$druglabbusts_DE, .name_repair = "unique")
+}
+
+
+acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+germany_meth_global <- germany_meth_global[,c(3:length(germany_meth_global))]
+ccf_list = rep(NA,length(germany_meth_global))
+acf_tibble_summary = data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_seventyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+acf_tibble_twentyfifth= data.frame(matrix(NA, nrow = 49,ncol = 0))
+
+
+for(i in 1:length(germany_meth_global)) #for each meth extraction date
+{ acf_tibble= data.frame(matrix(NA, nrow = 49,ncol = 0))
+for(k in 1:100){
+  ccf_germany = ccf(germany_meth_global[,i],crime_germany_imputed[,k],plot=FALSE,na.action = na.pass, lag.max = 24,main='germany',ylim=c(0,1))
+  ccf_germany = ccf_germany$acf
+  acf_tibble <- acf_tibble %>% add_column(ccf_germany, .name_repair = "unique")
+}
+  median_ccf = rowMedians(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE)
+  seventyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .75)
+  twentyfifth_ccf = rowQuantiles(as.matrix(acf_tibble[,c(1:100)]), na.rm =TRUE,probs = .25)
+  acf_tibble_summary <- acf_tibble_summary %>% add_column( median_ccf, .name_repair = "unique")
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth %>% add_column( seventyfifth_ccf, .name_repair = "unique")
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth %>% add_column( twentyfifth_ccf, .name_repair = "unique")
+}
+len  = length(acf_tibble_summary)
+  acf_tibble_summary$mean_overall = rowMeans(as.matrix(acf_tibble_summary[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_summary$lag = c(-24:24)
+  
+   len  = length(acf_tibble_seventyfifth)
+  acf_tibble_seventyfifth$seventyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_seventyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_seventyfifth$lag = c(-24:24)
+  acf_tibble_seventyfifth <- acf_tibble_seventyfifth |> select(seventyfifth_mean_overall, lag)
+  
+  
+    len  = length(acf_tibble_twentyfifth)
+  acf_tibble_twentyfifth$twentyfifth_mean_overall = rowMeans(as.matrix(acf_tibble_twentyfifth[,c(2:len)]), na.rm =TRUE)
+  acf_tibble_twentyfifth$lag = c(-24:24)
+  acf_tibble_twentyfifth <- acf_tibble_twentyfifth |> select(twentyfifth_mean_overall, lag)
+  
+  
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_twentyfifth, by = 'lag')
+  acf_tibble_summary <- merge(acf_tibble_summary, acf_tibble_seventyfifth, by = 'lag' ) 
+  acf_tibble_summary$median_ccf_top =  acf_tibble_summary$median_ccf
+  acf_tibble_summary <- acf_tibble_summary |> select(-median_ccf)
+  colnames = colnames(acf_tibble_summary[,2:129])
+  acf_tibble_summary_melted <- melt(acf_tibble_summary, id.vars="lag")
+  
+  
+  p4 = ggplot(acf_tibble_summary_melted,aes(x=lag,y=value, col=variable))+ geom_line() +ylim(-0.1, 1)+
+    scale_color_manual(values=c("#CC6666"))+
+  scale_color_manual(name = "", values = c(colnames = "white","median_ccf_top" = "darkblue","mean_overall"="red","seventyfifth_mean_overall"="darkred","twentyfifth_mean_overall"="darkred"))+theme(legend.position="none")
+```
+
+```{r}
+require(gridExtra)
+grid.arrange(p1,p2,p3,p4)
+```
+

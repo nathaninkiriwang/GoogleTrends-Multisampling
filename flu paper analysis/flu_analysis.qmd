@@ -1,0 +1,190 @@
+---
+title: "Google Trends Verification Study (Parable of Flu Analysis)"
+author: "Nathan Inkiriwang"
+format: 
+  html:
+    toc-title: Contents
+    toc: true
+    toc_float: true
+    toc-location: right
+    theme: united
+    anchor-sections: true
+    code-tools: true
+    code-fold: show
+    source: true
+    code-copy: hover
+    df-print: paged
+    smooth-scroll: true
+    html-math-method: katex
+    page-layout: article
+    self-contained: true
+    self-contained-math: true
+    code-link: true
+editor: source
+editor_options: 
+  chunk_output_type: inline
+---
+
+# Replicating Parable of Google Flu Analysis
+## Importing Data
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+setwd('/Users/natan/Desktop/usyd/2022/sem_2/scdl3991/flu paper analysis')
+fig10 = read_csv("abdominal pain(Fig S10).csv")
+fig15 = read_csv("SFig15.csv")
+glimpse(fig10)
+glimpse(fig15)
+```
+
+## Cleaning Data
+
+```{r}
+fig10$Month1 = fig10$Month
+fig10 <- fig10 |> select(-Month)
+fig10 = transform(fig10,month=substr(Month1,6,7),year=substr(Month1,1,4))
+fig10 = fig10 |> select(-Month1) |> janitor::clean_names()
+fig10$day = 1
+fig10$date <- as.Date(paste(fig10$year, fig10$month,fig10$day, sep="-"), "%Y-%m-%d")
+fig10 = fig10|> select(abdominal_pain_on_my_right_side, date)
+
+min(fig10$date)
+max(fig10$date)
+
+
+
+fig15 = fig15  |> mutate(date = as.Date(Week,"%m/%d/%Y")) |> select(-Week)
+fig15_long <- gather(fig15, term, value, amoxicillin:`symptoms of bronchitis`, factor_key=TRUE)
+
+min(fig15$date)
+max(fig15$date)
+```
+
+## Replicating Fig.10 Plot
+
+```{r}
+library(ggplot2)
+fig10 |> ggplot() + aes(x = date, y = abdominal_pain_on_my_right_side) + geom_line() + xlab("Date") + ylab("GT Abdominal Pain Value") + ggtitle("Fig.10 Searches for “abdominal pain on my right side.”")+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black"))
+```
+
+
+## Replicating Fig.15 Plot
+
+```{r}
+library(ggplot2)
+fig15_long |> ggplot() + aes(x=date,y=value) + geom_line() + geom_smooth(method = "loess", col = 'red')+ facet_wrap(~term)
+```
+
+
+
+
+# Replicating Parable of Google Flu Analysis with our Data
+## Importing Data
+
+```{r}
+library(tidyverse)
+df_final = read_csv("Parable_2004_2013.csv")
+df_final = na.omit(df_final)
+glimpse(df_final)
+```
+
+## Cleaning Data
+
+```{r, message=FALSE}
+library(janitor)
+df_final$date = as.Date(df_final$Date,"%d%b%Y")
+df_final$extraction_date = as.Date(df_final$ExtractionDate,"%d%b%Y")
+df_final <- df_final |> na.omit(Date) |> na.omit(GT_data_point)|> distinct() |> select(-c('StartDate','EndDate','fileno','ExtractionDate','Date','Region','Project')) |> janitor::clean_names() |> arrange(term, extraction_date, date) 
+
+df_final
+
+
+
+df_final <- df_final|> group_by(term,date) |> dplyr::mutate(id = row_number()) |> filter(id <= 130) |> select(-id)
+```
+
+
+## Checking Cross Tabulations (Needs to be redone)
+
+```{r, message=FALSE, warning=FALSE}
+## How many date obtained for each region and term_topic
+df_final_agg <- df_final %>% dplyr::group_by(term) %>% dplyr::summarise(n_distinct(extraction_date)) 
+
+ ## How many gt_values for each date obtained
+df_final_agg2 = df_final |> dplyr::group_by(term,extraction_date) |> dplyr::summarise(count=dplyr::n())
+max(df_final_agg2$count)
+min(df_final_agg2$count)
+
+write.csv(df_final_agg,"df_final_agg.csv", row.names = FALSE)
+write.csv(df_final_agg2,"df_final_agg2.csv", row.names = FALSE)
+```
+## Replicating Fig.10 with our data
+
+```{r}
+df_final_fig10 = df_final |> ungroup() |> filter(term == 'abdominal pain on my right side') |> select(-c('term'))
+df_final_fig10_wide = df_final_fig10 |> tidyr::spread(extraction_date, gt_data_point)
+df_final_fig10_wide$mean = rowMeans(as.matrix(df_final_fig10_wide[,c(2:length(df_final_fig10_wide))]), na.rm =TRUE) 
+df_final_fig10 = merge(df_final_fig10_wide,fig10,all.y=TRUE)
+df_final_fig10$paper_data = df_final_fig10$abdominal_pain_on_my_right_side
+df_final_fig10 <- df_final_fig10|> select(-abdominal_pain_on_my_right_side)
+df_final_fig10_col <- df_final_fig10|> select(c(date,paper_data,mean))
+df_final_fig10_reshaped <- reshape2::melt(df_final_fig10, id.vars="date")
+df_final_fig10_reshaped_col <- reshape2::melt(df_final_fig10_col, id.vars="date")
+
+df_final_fig10_reshaped_col_paper = df_final_fig10_reshaped_col |> filter(variable == 'paper_data')
+df_final_fig10_reshaped_col_our = df_final_fig10_reshaped_col |> filter(variable == 'mean')
+
+
+
+
+
+t.test(df_final_fig10_reshaped_col_paper$value, df_final_fig10_reshaped_col_our$value)
+wilcox.test(df_final_fig10_reshaped_col_paper$value, df_final_fig10_reshaped_col_our$value)
+p3 = ggplot(df_final_fig10_reshaped_col_paper, aes( y=value)) # Defines the x and y axis (2 variables). 
+p3 + geom_boxplot()
+
+
+
+p1 = ggplot(df_final_fig10_reshaped) + 
+  geom_line(aes(x=date,y=value),color = "lightgrey")
+
+p1 = p1 + geom_line(data =df_final_fig10_reshaped_col_paper,aes(x=date,y=value,col = 'Parable Paper Data'),size=0.8)
+
+p1 = p1 + geom_line(data =df_final_fig10_reshaped_col_our,aes(x=date,y=value,col = '130 Samples Mean'),size=0.8)
+
+p1 + ylab("Search Volume") + xlab("Date") + scale_color_manual(name=NULL,
+                     breaks=c('130 Samples Mean', 'Parable Paper Data'),
+                     values=c('130 Samples Mean'='#EE4827', 'Parable Paper Data'='#324E57'))+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) + ggtitle("Superimposed Fig.S10 - Searches for 'abdominal pain on my right side'")
+```
+
+
+
+## Replicating Fig.15 Plot with our data
+
+```{r, message = FALSE}
+library(ggplot2)
+df_final_fig15 = df_final |> filter(term !='abdominal pain on my right side') |> filter(term !='flu') 
+
+# df_final_fig15 = df_final_fig15 |> filter(term == 'early signs of the flu')
+# fig15_long = fig15_long|> filter(term == 'early signs of the flu')
+
+
+unique(df_final$term)
+
+
+p5 = df_final_fig15 |> ggplot() + aes(x = date,y=gt_data_point) + geom_line(col = 'lightgrey') + facet_wrap(~term)
+df_final_fig15_means = df_final_fig15 |> group_by(date,term) |> mutate(mean = mean(gt_data_point)) |> select(term,date,mean) |> distinct()
+
+colors <- c("Our 130 Samples" = "#EE4827", "Parable paper data" = "#324E57")
+p5 = p5  + geom_line( data =fig15_long ,aes(x=date,y=value), col = '#111B1E')
+p5 = p5 + geom_line(data =df_final_fig15_means, aes(x=date,y=mean), col = '#962F1A')
+p5 = p5 + geom_smooth(data =df_final_fig15_means, aes(x=date,y=mean,col = '130 Samples Mean'),method = "loess", size = 1,se = FALSE)
+p5 = p5+ geom_smooth(data =fig15_long, aes(x=date,y=value, col = 'Parable Paper Data'),method = "loess", size = 1,se = FALSE)
+
+p5 + ylab("Search Volume") + xlab("Date") + scale_color_manual(name=NULL,
+                     breaks=c('130 Samples Mean', 'Parable Paper Data'),
+                     values=c('130 Samples Mean'='#EE4827', 'Parable Paper Data'='#324E57'))+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+panel.background = element_blank(), axis.line = element_line(colour = "black")) + ggtitle("Superimposed Fig S15 - GT Searches for Indicated Terms")
+
+```

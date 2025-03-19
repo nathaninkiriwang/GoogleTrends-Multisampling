@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.0.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Nathan Inkiriwang">
+
+<title>Google Trends Verification Study (Parable of Flu Analysis)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="flu_analysis_files/libs/clipboard/clipboard.min.js"></script>
+<script src="flu_analysis_files/libs/quarto-html/quarto.js"></script>
+<script src="flu_analysis_files/libs/quarto-html/popper.min.js"></script>
+<script src="flu_analysis_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="flu_analysis_files/libs/quarto-html/anchor.min.js"></script>
+<link href="flu_analysis_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="flu_analysis_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="flu_analysis_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="flu_analysis_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="flu_analysis_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Google Trends Verification Study (Parable of Flu Analysis)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Nathan Inkiriwang </p>
+          </div>
+  </div>
+    
+    
+  </div>
+  
+
+</header>
+
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">tidy.opts=</span><span class="fu">list</span>(<span class="at">width.cutoff=</span><span class="dv">60</span>),<span class="at">tidy=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="replicating-parable-of-google-flu-analysis" class="level1">
+<h1>Replicating Parable of Google Flu Analysis</h1>
+<section id="importing-data" class="level2">
+<h2 class="anchored" data-anchor-id="importing-data">Importing Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">setwd</span>(<span class="st">'/Users/natan/Desktop/usyd/2022/sem 2/scdl3991/flu paper analysis'</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>fig10 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"abdominal pain(Fig S10).csv"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>fig15 <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"SFig15.csv"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(fig10)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 121
+Columns: 2
+$ Month                             &lt;chr&gt; "2004-01", "2004-02", "2004-03", "20…
+$ `abdominal pain on my right side` &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(fig15)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 510
+Columns: 9
+$ Week                     &lt;chr&gt; "1/4/2004", "1/11/2004", "1/18/2004", "1/25/2…
+$ amoxicillin              &lt;dbl&gt; 40, 31, 30, 29, 21, 26, 26, 29, 33, 32, 29, 3…
+$ `early signs of the flu` &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+$ fever                    &lt;dbl&gt; 45, 46, 49, 52, 48, 47, 51, 48, 47, 45, 52, 5…
+$ `influenza a`            &lt;dbl&gt; 17, 10, 9, 9, 9, 9, 9, 0, 0, 0, 0, 0, 0, 0, 0…
+$ pnumonia                 &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …
+$ robitussin               &lt;dbl&gt; 40, 34, 36, 44, 43, 26, 26, 35, 26, 31, 36, 3…
+$ `strep throat`           &lt;dbl&gt; 38, 43, 41, 41, 45, 52, 46, 49, 47, 49, 52, 4…
+$ `symptoms of bronchitis` &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 42, 0,…</code></pre>
+</div>
+</div>
+</section>
+<section id="cleaning-data" class="level2">
+<h2 class="anchored" data-anchor-id="cleaning-data">Cleaning Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig10<span class="sc">$</span>Month1 <span class="ot">=</span> fig10<span class="sc">$</span>Month</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>fig10 <span class="ot">&lt;-</span> fig10 <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>Month)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>fig10 <span class="ot">=</span> <span class="fu">transform</span>(fig10,<span class="at">month=</span><span class="fu">substr</span>(Month1,<span class="dv">6</span>,<span class="dv">7</span>),<span class="at">year=</span><span class="fu">substr</span>(Month1,<span class="dv">1</span>,<span class="dv">4</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>fig10 <span class="ot">=</span> fig10 <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>Month1) <span class="sc">|&gt;</span> janitor<span class="sc">::</span><span class="fu">clean_names</span>()</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>fig10<span class="sc">$</span>day <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>fig10<span class="sc">$</span>date <span class="ot">&lt;-</span> <span class="fu">as.Date</span>(<span class="fu">paste</span>(fig10<span class="sc">$</span>year, fig10<span class="sc">$</span>month,fig10<span class="sc">$</span>day, <span class="at">sep=</span><span class="st">"-"</span>), <span class="st">"%Y-%m-%d"</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>fig10 <span class="ot">=</span> fig10<span class="sc">|&gt;</span> <span class="fu">select</span>(abdominal_pain_on_my_right_side, date)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>fig15 <span class="ot">=</span> fig15  <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">date =</span> <span class="fu">as.Date</span>(Week,<span class="st">"%m/%d/%Y"</span>)) <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>Week)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>fig15_long <span class="ot">&lt;-</span> <span class="fu">gather</span>(fig15, term, value, amoxicillin<span class="sc">:</span><span class="st">`</span><span class="at">symptoms of bronchitis</span><span class="st">`</span>, <span class="at">factor_key=</span><span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="replicating-fig.10-plot" class="level2">
+<h2 class="anchored" data-anchor-id="replicating-fig.10-plot">Replicating Fig.10 Plot</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>fig10 <span class="sc">|&gt;</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">aes</span>(<span class="at">x =</span> date, <span class="at">y =</span> abdominal_pain_on_my_right_side) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> <span class="fu">xlab</span>(<span class="st">"Date"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"GT Abdominal Pain Value"</span>) <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="st">"Fig.10 Searches for “abdominal pain on my right side.”"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<p><img src="flu_analysis_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="replicating-fig.15-plot" class="level2">
+<h2 class="anchored" data-anchor-id="replicating-fig.15-plot">Replicating Fig.15 Plot</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>fig15_long <span class="sc">|&gt;</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>value) <span class="sc">+</span> <span class="fu">geom_line</span>() <span class="sc">+</span> <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">col =</span> <span class="st">'red'</span>)<span class="sc">+</span> <span class="fu">facet_wrap</span>(<span class="sc">~</span>term)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="flu_analysis_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+<section id="replicating-parable-of-google-flu-analysis-with-our-data" class="level1">
+<h1>Replicating Parable of Google Flu Analysis with our Data</h1>
+<section id="importing-data-1" class="level2">
+<h2 class="anchored" data-anchor-id="importing-data-1">Importing Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df_final <span class="ot">=</span> <span class="fu">read_csv</span>(<span class="st">"Parable.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rows: 2742265 Columns: 9
+── Column specification ────────────────────────────────────────────────────────
+Delimiter: ","
+chr (7): Region, Term, Project, Date, ExtractionDate, StartDate, EndDate
+dbl (2): fileno, GT_data_point
+
+ℹ Use `spec()` to retrieve the full column specification for this data.
+ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(df_final)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 2,742,265
+Columns: 9
+$ Region         &lt;chr&gt; "US", "US", "US", "US", "US", "US", "US", "US", "US", "…
+$ Term           &lt;chr&gt; "abdominal pain on my right side", "abdominal pain on m…
+$ Project        &lt;chr&gt; "Parable", "Parable", "Parable", "Parable", "Parable", …
+$ fileno         &lt;dbl&gt; 5169, 5119, 4919, 6028, 3272, 8622, 3836, 4213, 4598, 8…
+$ Date           &lt;chr&gt; "01JAN2004", "01JAN2004", "01JAN2004", "01JAN2004", "01…
+$ ExtractionDate &lt;chr&gt; "26MAY2021", "27MAY2021", "29MAY2021", "31MAY2021", "01…
+$ StartDate      &lt;chr&gt; "01JAN2004", "01JAN2004", "01JAN2004", "01JAN2004", "01…
+$ EndDate        &lt;chr&gt; "31JAN2014", "31JAN2014", "31JAN2014", "31JAN2014", "31…
+$ GT_data_point  &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</code></pre>
+</div>
+</div>
+</section>
+<section id="cleaning-data-1" class="level2">
+<h2 class="anchored" data-anchor-id="cleaning-data-1">Cleaning Data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(janitor)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'janitor'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    chisq.test, fisher.test</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>df_final<span class="sc">$</span>date <span class="ot">=</span> <span class="fu">as.Date</span>(df_final<span class="sc">$</span>Date,<span class="st">"%d%b%Y"</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>df_final<span class="sc">$</span>extraction_date <span class="ot">=</span> <span class="fu">as.Date</span>(df_final<span class="sc">$</span>ExtractionDate,<span class="st">"%d%b%Y"</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>df_final <span class="ot">&lt;-</span> df_final <span class="sc">|&gt;</span> <span class="fu">na.omit</span>(Date) <span class="sc">|&gt;</span> <span class="fu">na.omit</span>(GT_data_point)<span class="sc">|&gt;</span> <span class="fu">distinct</span>() <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(<span class="st">'StartDate'</span>,<span class="st">'EndDate'</span>,<span class="st">'fileno'</span>,<span class="st">'ExtractionDate'</span>,<span class="st">'Date'</span>,<span class="st">'Region'</span>,<span class="st">'Project'</span>)) <span class="sc">|&gt;</span> janitor<span class="sc">::</span><span class="fu">clean_names</span>()</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co"># df_final &lt;- df_final |&gt; clean_names() |&gt; arrange(region,term, extraction_date, date) |&gt; group_by(region,term,date) |&gt; dplyr::mutate(id = row_number()) |&gt; filter(id &lt;= 128) |&gt; select(-id)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="checking-cross-tabulations-needs-to-be-redone" class="level2">
+<h2 class="anchored" data-anchor-id="checking-cross-tabulations-needs-to-be-redone">Checking Cross Tabulations (Needs to be redone)</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="do">## How many date obtained for each region and term_topic</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>df_final_agg <span class="ot">&lt;-</span> df_final <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">group_by</span>(term, date) <span class="sc">%&gt;%</span> dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="fu">n_distinct</span>(extraction_date)) </span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a> <span class="do">## How many gt_values for each date obtained</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>df_final_agg2 <span class="ot">=</span> df_final <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">group_by</span>(term,extraction_date) <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">count=</span>dplyr<span class="sc">::</span><span class="fu">n</span>())</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(df_final_agg,<span class="st">"df_final_agg.csv"</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a><span class="fu">write.csv</span>(df_final_agg2,<span class="st">"df_final_agg2.csv"</span>, <span class="at">row.names =</span> <span class="cn">FALSE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="replicating-fig.10-with-our-data" class="level2">
+<h2 class="anchored" data-anchor-id="replicating-fig.10-with-our-data">Replicating Fig.10 with our data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>df_final_fig10 <span class="ot">=</span> df_final <span class="sc">|&gt;</span> <span class="fu">filter</span>(term <span class="sc">==</span> <span class="st">'abdominal pain on my right side'</span>) <span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span><span class="fu">c</span>(<span class="st">'term'</span>))</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>df_final_fig10_wide <span class="ot">=</span> <span class="fu">spread</span>(df_final_fig10, extraction_date, gt_data_point)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>df_final_fig10_wide<span class="sc">$</span>mean <span class="ot">=</span> <span class="fu">rowMeans</span>(<span class="fu">as.matrix</span>(df_final_fig10_wide[,<span class="fu">c</span>(<span class="dv">2</span><span class="sc">:</span><span class="fu">length</span>(df_final_fig10_wide))]), <span class="at">na.rm =</span><span class="cn">TRUE</span>) </span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>df_final_fig10 <span class="ot">=</span> <span class="fu">merge</span>(df_final_fig10_wide,fig10,<span class="at">all.y=</span><span class="cn">TRUE</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>df_final_fig10<span class="sc">$</span>paper_data <span class="ot">=</span> df_final_fig10<span class="sc">$</span>abdominal_pain_on_my_right_side</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>df_final_fig10 <span class="ot">&lt;-</span> df_final_fig10<span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="sc">-</span>abdominal_pain_on_my_right_side)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>df_final_fig10_col <span class="ot">&lt;-</span> df_final_fig10<span class="sc">|&gt;</span> <span class="fu">select</span>(<span class="fu">c</span>(date,paper_data,mean))</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a>df_final_fig10_reshaped <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(df_final_fig10, <span class="at">id.vars=</span><span class="st">"date"</span>)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>df_final_fig10_reshaped_col <span class="ot">&lt;-</span> reshape2<span class="sc">::</span><span class="fu">melt</span>(df_final_fig10_col, <span class="at">id.vars=</span><span class="st">"date"</span>)</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">=</span> <span class="fu">ggplot</span>(df_final_fig10_reshaped) <span class="sc">+</span> </span>
+<span id="cb19-13"><a href="#cb19-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>value),<span class="at">color =</span> <span class="st">"lightgrey"</span>)</span>
+<span id="cb19-14"><a href="#cb19-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-15"><a href="#cb19-15" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">=</span> p1 <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span>df_final_fig10_reshaped_col,<span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>value, <span class="at">col =</span> variable),<span class="at">size=</span><span class="fl">0.8</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="replicating-fig.15-plot-with-our-data" class="level2">
+<h2 class="anchored" data-anchor-id="replicating-fig.15-plot-with-our-data">Replicating Fig.15 Plot with our data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>df_final_fig15 <span class="ot">=</span> df_final <span class="sc">|&gt;</span> <span class="fu">filter</span>(term <span class="sc">!=</span><span class="st">'abdominal pain on my right side'</span>) <span class="sc">|&gt;</span> <span class="fu">filter</span>(term <span class="sc">!=</span><span class="st">'flu'</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>p5 <span class="ot">=</span> df_final_fig15 <span class="sc">|&gt;</span> <span class="fu">ggplot</span>() <span class="sc">+</span> <span class="fu">aes</span>(<span class="at">x =</span> date,<span class="at">y=</span>gt_data_point) <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">col =</span> <span class="st">'lightgrey'</span>) <span class="sc">+</span> <span class="fu">facet_wrap</span>(<span class="sc">~</span>term)</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>df_final_fig15_means <span class="ot">=</span> df_final_fig15 <span class="sc">|&gt;</span> <span class="fu">group_by</span>(date,term) <span class="sc">|&gt;</span> <span class="fu">mutate</span>(<span class="at">mean =</span> <span class="fu">mean</span>(gt_data_point)) <span class="sc">|&gt;</span> <span class="fu">select</span>(term,date,mean) <span class="sc">|&gt;</span> <span class="fu">distinct</span>()</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>p5 <span class="ot">=</span> p5 <span class="sc">+</span> <span class="fu">geom_line</span>(<span class="at">data =</span>df_final_fig15_means, <span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>mean), <span class="at">col =</span> <span class="st">'red'</span>) </span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>p5 <span class="ot">=</span> p5 <span class="sc">+</span> <span class="fu">geom_smooth</span>(<span class="at">data =</span>df_final_fig15_means, <span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>mean),<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">col =</span> <span class="st">'darkred'</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>p5 <span class="ot">=</span> p5  <span class="sc">+</span> <span class="fu">geom_line</span>( <span class="at">data =</span>fig15_long ,<span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>value), <span class="at">col =</span> <span class="st">'blue'</span>) </span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>p5 <span class="ot">=</span> p5<span class="sc">+</span> <span class="fu">geom_smooth</span>(<span class="at">data =</span>fig15_long, <span class="fu">aes</span>(<span class="at">x=</span>date,<span class="at">y=</span>value),<span class="at">method =</span> <span class="st">"loess"</span>, <span class="at">col =</span> <span class="st">'darkblue'</span>)</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>p5</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`geom_smooth()` using formula 'y ~ x'
+`geom_smooth()` using formula 'y ~ x'</code></pre>
+</div>
+<div class="cell-output-display">
+<p><img src="flu_analysis_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
